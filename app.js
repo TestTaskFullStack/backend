@@ -1,13 +1,16 @@
 import express from "express";
 import cors from "cors";
 import db from "./models/index.js";
+import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/user.routes.js";
 
+import seedGames from "./scripts/seedDatabase.js";
 
 const app = express();
 
 // Middleware configuration
 const corsOptions = {
-  origin: "http://localhost:8081",
+  origin: "*",
 };
 
 app.use(cors(corsOptions));
@@ -22,8 +25,8 @@ app.get("/", (req, res) => {
 });
 
 // Routes
-// app.use("/api/auth", authRoutes);
-// app.use("/api/test", userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/test", userRoutes);
 
 // Set port and start server
 const PORT = process.env.PORT || 8080;
@@ -45,7 +48,7 @@ db.mongoose
   });
 
 // Initial function to populate roles
-function initial() {
+ function initial() {
   db.Role.estimatedDocumentCount()
     .then((count) => {
       if (count === 0) {
@@ -57,12 +60,12 @@ function initial() {
     })
     .then((roles) => {
       if (roles) {
-        console.log(
-          "Added 'user', 'admin' to roles collection."
-        );
+        console.log("Added 'user', 'admin' to roles collection.");
       }
     })
     .catch((err) => {
       console.error("Error initializing roles:", err);
     });
+    seedGames()
+  
 }
