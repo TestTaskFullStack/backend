@@ -34,7 +34,7 @@ export const signin = async (req, res) => {
     const user = await User.findOne({username: req.body.username}).populate('roles', '-__v');
  
     if (!user) {
-      return res.status(404).json({message: 'User Not found.'});
+      return res.status(404).json({message: 'Користувача не знайдено.'});
     }
  
     // Validate password
@@ -42,7 +42,7 @@ export const signin = async (req, res) => {
     if (!passwordIsValid) {
       return res.status(401).json({
         accessToken: null,
-        message: 'Invalid Password!',
+        message: 'Неправильний пароль чи пошта!',
       });
     }
  

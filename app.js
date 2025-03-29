@@ -1,45 +1,59 @@
 import express from "express";
 import cors from "cors";
+import http from "http";
 import db from "./models/index.js";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import gameRoutes from "./routes/game.routes.js";
+import genreRoutes from "./routes/genre.routes.js";
+import initializeSocket from "./sockets/index.js";
 
-import seedGames from "./scripts/seedDatabase.js";
+import seedData from "./scripts/seedDatabase.js";
 
 const app = express();
+const server = http.createServer(app);
 
-// Middleware configuration
 const corsOptions = {
   origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-requested-with"],
+  credentials: true
 };
 
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Simple route for testing
+// Добавляем тестовую страницу Socket.io
+
+
 app.get("/", (req, res) => {
   res.json({
     message: "Welcome to the Node.js JWT Authentication application.",
   });
 });
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/test", userRoutes);
+app.use("/api/games", gameRoutes);
+app.use("/api/genres", genreRoutes);
 
-// Set port and start server
 const PORT = process.env.PORT || 8080;
 
-// Connect to MongoDB and start the server
 db.mongoose
   .connect(`mongodb://${db.config.HOST}:${db.config.PORT}/${db.config.DB}`)
   .then(() => {
     console.log("Successfully connected to MongoDB.");
-    // Initialize roles in the database
     initial();
-    app.listen(PORT, () => {
+    
+    console.log("Initializing Socket.io server...");
+    initializeSocket(server);
+    console.log("Socket.io server initialized");
+    
+    server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}.`);
+      console.log(`Socket.io server is running.`);
+      console.log(`Socket.io test page available at http://localhost:${PORT}/socket-test`);
     });
   })
   .catch((err) => {
@@ -47,8 +61,7 @@ db.mongoose
     process.exit();
   });
 
-// Initial function to populate roles
- function initial() {
+function initial() {
   db.Role.estimatedDocumentCount()
     .then((count) => {
       if (count === 0) {
@@ -66,6 +79,5 @@ db.mongoose
     .catch((err) => {
       console.error("Error initializing roles:", err);
     });
-    seedGames()
-  
+    seedData()
 }
