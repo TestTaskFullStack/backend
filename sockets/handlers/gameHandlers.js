@@ -4,23 +4,22 @@ import { socketCatchAsync } from '../../utils/errors.js';
 import { SOCKET_EVENTS } from '../../config/constants.js';
 
 
-export const registerGameHandlers = (io, socket) => {
+export const registerGameHandlers =  (io, socket) => {
  
 
   const handleGameCreate = socketCatchAsync(socket, SOCKET_EVENTS.GAME_CREATED)(
     async (gameData) => {
-      if (!socket.user?.roles.includes('admin')) {
+      if (socket.user.roles[0].name !== 'admin') {
         throw new Error('Unauthorized: Admin access required');
       }
 
-      const game = await gameService.create(gameData);
-      
-      socket.emit(SOCKET_EVENTS.GAME_CREATED, {
-        success: true,
-        data: game
-      });
+      const game = await gameService.createGame(gameData);
+    
 
-      io.to('game:events').emit(SOCKET_EVENTS.GAME_CREATED, { game });
+      io.to('game:events').emit(SOCKET_EVENTS.GAME_CREATED, {
+        success: true,
+        message: 'Додана нова гра'
+      });
     }
   );
   
@@ -76,8 +75,8 @@ export const registerGameHandlers = (io, socket) => {
       });
 
       io.to('game:events').emit(SOCKET_EVENTS.GAME_COMMENTED, {
-        gameId,
-        comment
+        success: true,
+        message: 'Коментар додано'
       });
     }
   );
@@ -88,8 +87,12 @@ export const registerGameHandlers = (io, socket) => {
   socket.on(SOCKET_EVENTS.GAME_DELETED, handleGameDelete);
   socket.on(SOCKET_EVENTS.GAME_COMMENT, handleGameComment);
 
-  socket.on(SOCKET_EVENTS.GAME_SUBSCRIBE, () => {
+  socket.on(SOCKET_EVENTS.GAME_SUBSCRIBE, async () => {
     socket.join('game:events');
+    const sockets = await io.fetchSockets()
+    io.emit(SOCKET_EVENTS.USERS_ONLINE, {
+      count: sockets.length
+    });
     socket.emit(SOCKET_EVENTS.GAME_SUBSCRIBED, { success: true });
   });
 

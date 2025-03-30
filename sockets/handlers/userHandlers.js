@@ -13,10 +13,9 @@ export const registerUserHandlers = (io, socket) => {
 
       socket.emit(SOCKET_EVENTS.USER_STARTED_GAME_RESPONSE, {
         success: true,
-        data: { game }
+        message: "Гра запущена"
       });
 
-      // Отправляем уведомление во все вкладки пользователя
       const userSockets = await io.fetchSockets();
       userSockets
         .filter(s => s.user?._id.toString() === socket.user._id.toString())
@@ -24,38 +23,23 @@ export const registerUserHandlers = (io, socket) => {
           if (s.id !== socket.id) {
             s.emit(SOCKET_EVENTS.USER_STARTED_GAME_RESPONSE, {
               success: true,
-              data: { game }
+              message: "Гра запущена"
             });
           }
         });
 
-      // Проверяем достижение за первую игру
-      if (user.startedGames.length === 1) {
+      if (user.startedGames.length) {
         const achievement = ACHIEVEMENTS.FIRST_GAME;
         userSockets
           .filter(s => s.user?._id.toString() === socket.user._id.toString())
           .forEach(s => {
             s.emit(SOCKET_EVENTS.USER_ACHIEVEMENT, {
               success: true,
-              data: achievement
+              message: `Досягнення ${achievement.title} отримано`,
+              description: achievement.description
             });
           });
       }
-    }
-  );
-
-  const handleGetStartedGames = socketCatchAsync(socket, SOCKET_EVENTS.USER_STARTED_GAMES_RESPONSE)(
-    async () => {
-      if (!socket.user) {
-        throw new Error('Unauthorized: User not authenticated');
-      }
-
-      const games = await userService.getStartedGames(socket.user._id);
-
-      socket.emit(SOCKET_EVENTS.USER_STARTED_GAMES_RESPONSE, {
-        success: true,
-        data: games
-      });
     }
   );
 
@@ -75,6 +59,5 @@ export const registerUserHandlers = (io, socket) => {
   );
 
   socket.on(SOCKET_EVENTS.USER_STARTED_GAME, handleStartGame);
-  socket.on(SOCKET_EVENTS.USER_GET_STARTED_GAMES, handleGetStartedGames);
   socket.on(SOCKET_EVENTS.USER_GET_ACHIEVEMENTS, handleGetAchievements);
 }; 

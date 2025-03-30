@@ -7,8 +7,6 @@ const User = db.User;
 const Role = db.Role;
  
 export const signup = async (req, res) => {
-    console.log(req.body);
-    
   try {
     const user = new User({
       username: req.body.username,
@@ -33,7 +31,7 @@ export const signin = async (req, res) => {
     const user = await User.findOne({username: req.body.username}).populate('roles', '-__v');
  
     if (!user) {
-      return res.status(404).json({message: 'Користувача не знайдено.'});
+      return res.status(404).json({message: 'Неправильний пароль чи пошта!'});
     }
  
     const passwordIsValid = bcrypt.compareSync(req.body.password, user.password);
@@ -45,18 +43,13 @@ export const signin = async (req, res) => {
     }
  
     
-    const token = jwt.sign({id: user.id, username: user.username,}, config.secret, {
+    const token = jwt.sign({id: user.id, username: user.username, role: user.roles[0].name}, config.secret, {
       algorithm: 'HS256',
       expiresIn: 86400, // 24 hours
     });
  
-    const authorities = user.roles.map((role) => `ROLE_${role.name.toUpperCase()}`);
- 
+
     res.status(200).json({
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      roles: authorities,
       accessToken: token,
     });
   } catch (err) {

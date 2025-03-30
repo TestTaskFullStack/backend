@@ -8,8 +8,8 @@ import gameRoutes from "./routes/game.routes.js";
 import genreRoutes from "./routes/genre.routes.js";
 import initializeSocket from "./sockets/index.js";
 import setupSwagger from "./config/swagger.js";
-
 import seedData from "./scripts/seedDatabase.js";
+
 
 const app = express();
 const server = http.createServer(app);
@@ -24,19 +24,25 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 setupSwagger(app);
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Welcome to the Node.js JWT Authentication application.",
+    message: "Welcome to the Game Library application.",
   });
 });
+
 
 app.use("/api/auth", authRoutes);
 app.use("/api/games", gameRoutes);
 app.use("/api/genres", genreRoutes);
 app.use("/api/user", userRoutes);
+
+
+
+
+
+
 
 const PORT = process.env.PORT || 8080;
 

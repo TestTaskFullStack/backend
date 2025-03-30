@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 
 const Game = db.Game;
 const Genre = db.Genre;
+const User = db.User;
 
 export const gameService = {
     async getAllGames(query = {}) {
@@ -58,7 +59,13 @@ export const gameService = {
             throw new AppError(ERROR_MESSAGES.INVALID_ID, 400);
         }
 
-        const game = await Game.findById(gameId).populate('genre');
+        let game = await Game.findById(gameId).populate('genre').populate({
+            path: 'comments',
+            populate: {
+                path: 'author',
+                select: 'username'
+            }
+        })
         if (!game) {
             throw new AppError(ERROR_MESSAGES.NOT_FOUND, 404);
         }
@@ -67,7 +74,9 @@ export const gameService = {
     },
 
     async createGame(gameData) {
-        const game = new Game(gameData);
+        let data = gameData
+        data.systemGameName = gameData.commonGameName.toLowerCase().replace(/ /g, '_')
+        const game = new Game(data);
         return await game.save();
     },
 

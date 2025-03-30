@@ -11,7 +11,9 @@ const verifyToken = async (req, res, next) => {
     let token = req.headers['x-access-token'] || req.headers['authorization'];
 
     if (!token) {
-        throw new AppError(ERROR_MESSAGES.NO_TOKEN, ERROR_CODES.FORBIDDEN);
+        const error = new AppError(ERROR_MESSAGES.NO_TOKEN, ERROR_CODES.FORBIDDEN)
+        res.status(error.statusCode).json({ message: error.message })
+        return
     }
 
     if (token.startsWith('Bearer ')) {
@@ -22,7 +24,7 @@ const verifyToken = async (req, res, next) => {
         const decoded = jwt.verify(token, config.secret);
         req.userId = decoded.id;
 
-        const user = await User.findById(req.userId);
+        const user = await User.findById(req.userId);   
         if (!user) {
             throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, ERROR_CODES.NOT_FOUND);
         }

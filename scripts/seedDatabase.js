@@ -1,11 +1,11 @@
 import { gamesToSeed } from "./mockData/games.js";
 import { genresToSeed } from "./mockData/genre.js";
 import db from "../models/index.js";
-import { achievementsToSeed } from "./mockData/achievementsToSeed.js";
 
 const Genre = db.Genre;
 const Game = db.Game;
-const Achievement = db.Achievement;
+const User = db.User;
+
 
 
 const seedGenres = async () => {
@@ -47,28 +47,31 @@ const seedGames = async () => {
   }
 };
 
-const seedAchievements = async () => {
-  for (const achievementData of achievementsToSeed) {
-    const { _id, ...seedData } = achievementData;
-    const existingAchievement = await Achievement.findOne({
-      title: seedData.title,
-    });
-    if (!existingAchievement) {
-      await new Achievement(seedData).save();
-      console.log(`Added achievement '${seedData.title}'.`);
 
-    } else {
-      console.log(`Achievement '${seedData.title}' already exists.`);
-    }
+const seedUser = async () => {
+  const existingUser = await User.findOne({
+    username: 'admin',
+  });
+  if (existingUser) {
+    console.log(`User 'admin' already exists.`);
+  } else {
+    const user = new User({
+      username: 'admin',
+      email: 'admin@admin.com',
+      password: '$2b$08$tUca47vS5K20EvknmZjKJ.4k9xdulCTV9bgTRYbRo/OdV1sI4vzAW',
+    });
+    await user.save();
+    console.log(`Added user '${user.username}'.`);
   }
 };
+
 
 const seedData = async () => {
   console.log(`Checking/Seeding ${gamesToSeed.length} game(s)...`);
   try {
-    await seedAchievements();
     await seedGenres();
     await seedGames();
+    await seedUser();
   } catch (err) {
     console.error(err);
   }
