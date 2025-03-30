@@ -1,9 +1,12 @@
 import { gamesToSeed } from "./mockData/games.js";
 import { genresToSeed } from "./mockData/genre.js";
 import db from "../models/index.js";
+import { achievementsToSeed } from "./mockData/achievementsToSeed.js";
 
 const Genre = db.Genre;
 const Game = db.Game;
+const Achievement = db.Achievement;
+
 
 const seedGenres = async () => {
   for (const genreName of genresToSeed) {
@@ -30,6 +33,7 @@ const seedGames = async () => {
       let data = seedData;
       let genre = await Genre.findOne({ name: seedData.genre });
       data.genre = genre._id;
+      data.comments = [];
       await new Game(data).save();
 
       console.log(
@@ -43,9 +47,26 @@ const seedGames = async () => {
   }
 };
 
+const seedAchievements = async () => {
+  for (const achievementData of achievementsToSeed) {
+    const { _id, ...seedData } = achievementData;
+    const existingAchievement = await Achievement.findOne({
+      title: seedData.title,
+    });
+    if (!existingAchievement) {
+      await new Achievement(seedData).save();
+      console.log(`Added achievement '${seedData.title}'.`);
+
+    } else {
+      console.log(`Achievement '${seedData.title}' already exists.`);
+    }
+  }
+};
+
 const seedData = async () => {
   console.log(`Checking/Seeding ${gamesToSeed.length} game(s)...`);
   try {
+    await seedAchievements();
     await seedGenres();
     await seedGames();
   } catch (err) {

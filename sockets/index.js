@@ -1,7 +1,7 @@
 import { Server } from 'socket.io';
 import { verifySocketToken } from './middlewares/authMiddleware.js';
 import { registerGameHandlers } from './handlers/gameHandlers.js';
-
+import { registerUserHandlers } from './handlers/userHandlers.js';
 
 let onlineUsers = 0
 
@@ -17,7 +17,6 @@ export default function initializeSocket(server) {
     },
     transports: ['websocket'],
     allowEIO3: true,
-    pingTimeout: 60000
   });
   
   console.log('Socket.io server created');
@@ -39,16 +38,20 @@ export default function initializeSocket(server) {
     
     if (socket.auth?.authenticated) {
       onlineUsers++
-      io.emit('online:users', { count: onlineUsers });
     }
     
-    registerGameHandlers(io, socket);
-    
+
     socket.on('online:users', async () => {
-      socket.emit('online:users_response', {
+      socket.emit('online:users', {
         count: onlineUsers
       });
     });
+
+
+    registerGameHandlers(io, socket);
+    registerUserHandlers(io, socket);
+    
+    
 
 
     socket.on('error', (err) => {

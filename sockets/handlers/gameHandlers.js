@@ -1,134 +1,102 @@
-import db from '../../models/index.js';
-import { requireAuth, requireAdmin } from '../middlewares/authMiddleware.js';
+import { gameService } from '../../services/game.service.js';
+import { commentService } from '../../services/comment.service.js';
+import { socketCatchAsync } from '../../utils/errors.js';
+import { SOCKET_EVENTS } from '../../config/constants.js';
 
-const Game = db.Game;
-const Genre = db.Genre;
 
 export const registerGameHandlers = (io, socket) => {
+ 
 
-
-  socket.on('game:subscribe', () => {
-    socket.join('game:events');
-    socket.emit('game:subscribed', { success: true });
-  });
-
-  socket.on('game:unsubscribe', () => {
-    socket.leave('game:events');
-    socket.emit('game:unsubscribed', { success: true });
-  });
-
-  socket.on('game:create', async (gameData) => {
-    console.log()
-    try {
-      if (!socket.user || socket.user.roles[0].name !== 'admin') {
-        socket.emit('game:create_response', {
-          success: false,
-          error: 'Unauthorized: Admin access required'
-        });
-        return;
+  const handleGameCreate = socketCatchAsync(socket, SOCKET_EVENTS.GAME_CREATED)(
+    async (gameData) => {
+      if (!socket.user?.roles.includes('admin')) {
+        throw new Error('Unauthorized: Admin access required');
       }
 
-      const game = new Game(gameData);
-      await game.save();
-
-      socket.emit('game:create_response', {
-        success: true,
-        message: "🕹️ Нова гра додана"
-      });
-
-
-      io.to('game:events').emit('game:created', {
-        success: true,
-        message: '🕹️ Хороші новини! Нова гра вже доступна для вас. Грайте просто зараз!'
-      });
-
-
+      const game = await gameService.create(gameData);
       
-    } catch (error) {
-      console.error('Error creating game:', error);
-      socket.emit('game:create_response', {
-        success: false,
-        error: error.message
+      socket.emit(SOCKET_EVENTS.GAME_CREATED, {
+        success: true,
+        data: game
       });
-    }
-  });
 
-  socket.on('game:update', async ({ gameId, updateData }) => {
-    try {
-      if (!socket.user || !socket.user.roles.includes('admin')) {
-        socket.emit('game:update_response', {
-          success: false,
-          error: 'Unauthorized: Admin access required'
-        });
-        return;
+      io.to('game:events').emit(SOCKET_EVENTS.GAME_CREATED, { game });
+    }
+  );
+  
+  const handleGameUpdate = socketCatchAsync(socket, SOCKET_EVENTS.GAME_UPDATED)(
+    async ({ gameId, updateData }) => {
+      if (!socket.user?.roles.includes('admin')) {
+        throw new Error('Unauthorized: Admin access required');
       }
 
-      const game = await Game.findByIdAndUpdate(
+      const game = await gameService.update(gameId, updateData);
+      
+      socket.emit(SOCKET_EVENTS.GAME_UPDATED, {
+        success: true,
+        data: game
+      });
+
+      io.to('game:events').emit(SOCKET_EVENTS.GAME_UPDATED, { game });
+    }
+  );
+
+  const handleGameDelete = socketCatchAsync(socket, SOCKET_EVENTS.GAME_DELETED)(
+    async ({ gameId }) => {
+      if (!socket.user?.roles.includes('admin')) {
+        throw new Error('Unauthorized: Admin access required');
+      }
+
+      const game = await gameService.delete(gameId);
+      
+      socket.emit(SOCKET_EVENTS.GAME_DELETED, {
+        success: true,
+        data: game
+      });
+
+      io.to('game:events').emit(SOCKET_EVENTS.GAME_DELETED, { gameId });
+    }
+  );
+
+  const handleGameComment = socketCatchAsync(socket, SOCKET_EVENTS.GAME_COMMENT_RESPONSE)(
+    async ({ gameId, text }) => {
+      if (!socket.user) {
+        throw new Error('Unauthorized: User not authenticated');
+      }
+
+      const { game, comment } = await commentService.create({
+        text,
+        authorId: socket.user._id,
+        gameId
+      });
+
+        socket.emit(SOCKET_EVENTS.GAME_COMMENT_RESPONSE, {
+        success: true,
+        data: comment
+      });
+
+      io.to('game:events').emit(SOCKET_EVENTS.GAME_COMMENTED, {
         gameId,
-        { $set: updateData },
-        { new: true }
-      ).populate('genre');
-
-      if (!game) {
-        socket.emit('game:update_response', {
-          success: false,
-          error: 'Game not found'
-        });
-        return;
-      }
-
-      socket.emit('game:update_response', {
-        success: true,
-        data: game
-      });
-
-      io.to('game:events').emit('game:updated', { game });
-    } catch (error) {
-      console.error('Error updating game:', error);
-      socket.emit('game:update_response', {
-        success: false,
-        error: error.message
+        comment
       });
     }
+  );
+
+
+  socket.on(SOCKET_EVENTS.GAME_CREATED, handleGameCreate);
+  socket.on(SOCKET_EVENTS.GAME_UPDATED, handleGameUpdate);
+  socket.on(SOCKET_EVENTS.GAME_DELETED, handleGameDelete);
+  socket.on(SOCKET_EVENTS.GAME_COMMENT, handleGameComment);
+
+  socket.on(SOCKET_EVENTS.GAME_SUBSCRIBE, () => {
+    socket.join('game:events');
+    socket.emit(SOCKET_EVENTS.GAME_SUBSCRIBED, { success: true });
   });
 
-  socket.on('game:delete', async ({ gameId }) => {
-
-    try {
-      if (!socket.user || !socket.user.roles.includes('admin')) {
-        socket.emit('game:delete_response', {
-          success: false,
-          error: 'Unauthorized: Admin access required'
-        });
-        return;
-      }
-
-      const game = await Game.findByIdAndDelete(gameId);
-
-      if (!game) {
-        socket.emit('game:delete_response', {
-          success: false,
-          error: 'Game not found'
-        });
-        return;
-      }
-
-      socket.emit('game:delete_response', {
-        success: true,
-        data: game
-      });
-
-      io.to('game:events').emit('game:deleted', { gameId });
-    } catch (error) {
-      console.error('Error deleting game:', error);
-      socket.emit('game:delete_response', {
-        success: false,
-        error: error.message
-      });
-    }
+  socket.on(SOCKET_EVENTS.GAME_UNSUBSCRIBE, () => {
+    socket.leave('game:events');
+    socket.emit(SOCKET_EVENTS.GAME_UNSUBSCRIBED, { success: true });
   });
-
-
 
 
 }; 

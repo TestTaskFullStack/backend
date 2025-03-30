@@ -1,43 +1,48 @@
 import db from '../models/index.js';
- 
-const ROLES = db.ROLES; 
+import { AppError } from '../utils/errors.js';
+import { ERROR_MESSAGES, ERROR_CODES } from '../config/constants.js';
+
+const ROLES = db.ROLES;
 const User = db.User;
- 
+
 const checkDuplicateUsernameOrEmail = async (req, res, next) => {
-  try {
-    // Check if username exists
-    const userByUsername = await User.findOne({ username: req.body.username });
-    if (userByUsername) {
-      return res.status(400).json({ message: 'Failed! Username is already in use!' });
+    try {
+        const userByUsername = await User.findOne({ username: req.body.username });
+        if (userByUsername) {
+            throw new AppError(ERROR_MESSAGES.USER_ALREADY_EXISTS, ERROR_CODES.CONFLICT);
+        }
+
+        const userByEmail = await User.findOne({ email: req.body.email });
+        if (userByEmail) {
+            throw new AppError(ERROR_MESSAGES.USER_ALREADY_EXISTS, ERROR_CODES.CONFLICT);
+        }
+
+        next();
+    } catch (err) {
+        if (err instanceof AppError) {
+            next(err);
+        } else {
+            next(new AppError(ERROR_MESSAGES.INTERNAL_ERROR, ERROR_CODES.INTERNAL_ERROR));
+        }
     }
- 
-    // Check if email exists
-    const userByEmail = await User.findOne({ email: req.body.email });
-    if (userByEmail) {
-      return res.status(400).json({ message: 'Failed! Email is already in use!' });
-    }
- 
-    next();
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
 };
- 
+
 const checkRolesExisted = (req, res, next) => {
-  if (req.body.roles) {
-    const invalidRoles = req.body.roles.filter((role) => !ROLES.includes(role));
-    if (invalidRoles.length > 0) {
-      return res.status(400).json({
-        message: `Failed! Roles [${invalidRoles.join(', ')}] do not exist!`,
-      });
+    if (req.body.roles) {
+        const invalidRoles = req.body.roles.filter((role) => !ROLES.includes(role));
+        if (invalidRoles.length > 0) {
+            throw new AppError(
+                `Invalid roles: ${invalidRoles.join(', ')}`,
+                ERROR_CODES.BAD_REQUEST
+            );
+        }
     }
-  }
-  next();
+    next();
 };
- 
+
 const verifySignUp = {
-  checkDuplicateUsernameOrEmail,
-  checkRolesExisted,
+    checkDuplicateUsernameOrEmail,
+    checkRolesExisted,
 };
- 
+
 export default verifySignUp;

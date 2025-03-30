@@ -20,12 +20,26 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
+    startedGames: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Game',
+        unique: true,
+      },
+    ],
     roles: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Role',
       },
     ],
+    achievements: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Achievement',
+      },
+    ],
+    
   },
   { timestamps: true }
 );

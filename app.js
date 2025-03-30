@@ -7,6 +7,7 @@ import userRoutes from "./routes/user.routes.js";
 import gameRoutes from "./routes/game.routes.js";
 import genreRoutes from "./routes/genre.routes.js";
 import initializeSocket from "./sockets/index.js";
+import setupSwagger from "./config/swagger.js";
 
 import seedData from "./scripts/seedDatabase.js";
 
@@ -24,8 +25,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Добавляем тестовую страницу Socket.io
-
+setupSwagger(app);
 
 app.get("/", (req, res) => {
   res.json({
@@ -34,9 +34,9 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
-app.use("/api/test", userRoutes);
 app.use("/api/games", gameRoutes);
 app.use("/api/genres", genreRoutes);
+app.use("/api/user", userRoutes);
 
 const PORT = process.env.PORT || 8080;
 
@@ -61,7 +61,7 @@ db.mongoose
     process.exit();
   });
 
-function initial() {
+ function initial() {
   db.Role.estimatedDocumentCount()
     .then((count) => {
       if (count === 0) {

@@ -22,6 +22,12 @@ const GameSchema = new mongoose.Schema(
     gameLogo: String,
     gameVideoLauncherUrl: String,
     gameHero: String,
+    comments: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Comment",
+      },
+    ],
   },
   {
     timestamps: true,
