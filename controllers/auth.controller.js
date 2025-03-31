@@ -29,7 +29,7 @@ export const signup = async (req, res) => {
 export const signin = async (req, res) => {
   try {
     const user = await User.findOne({username: req.body.username}).populate('roles', '-__v');
- 
+    console.log(user);
     if (!user) {
       return res.status(404).json({message: 'Неправильний пароль чи пошта!'});
     }

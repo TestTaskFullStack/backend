@@ -1,7 +1,9 @@
 import { socketCatchAsync } from '../../utils/errors.js';
 import { SOCKET_EVENTS, ACHIEVEMENTS } from '../../config/constants.js';
 import { userService } from '../../services/user.service.js';
+import db from '../../models/index.js';
 
+const Achievement = db.Achievement;
 export const registerUserHandlers = (io, socket) => {
   const handleStartGame = socketCatchAsync(socket, SOCKET_EVENTS.USER_STARTED_GAME_RESPONSE)(
     async ({ gameId }) => {
@@ -10,35 +12,21 @@ export const registerUserHandlers = (io, socket) => {
       }
 
       const { user, game } = await userService.startGame(socket.user._id, gameId);
+      
 
       socket.emit(SOCKET_EVENTS.USER_STARTED_GAME_RESPONSE, {
         success: true,
-        message: "Гра запущена"
+        message: "Гра запущена" 
       });
 
-      const userSockets = await io.fetchSockets();
-      userSockets
-        .filter(s => s.user?._id.toString() === socket.user._id.toString())
-        .forEach(s => {
-          if (s.id !== socket.id) {
-            s.emit(SOCKET_EVENTS.USER_STARTED_GAME_RESPONSE, {
-              success: true,
-              message: "Гра запущена"
-            });
-          }
+       
+      if (user.startedGames.length === 1) {
+        const achievement = await Achievement.findById("67ea7ff631454d19bf12e7ef");
+        socket.emit(SOCKET_EVENTS.USER_ACHIEVEMENT, {
+          success: true,
+          message: `Досягнення ${achievement.title} отримано`,
+          description: achievement.description
         });
-
-      if (user.startedGames.length) {
-        const achievement = ACHIEVEMENTS.FIRST_GAME;
-        userSockets
-          .filter(s => s.user?._id.toString() === socket.user._id.toString())
-          .forEach(s => {
-            s.emit(SOCKET_EVENTS.USER_ACHIEVEMENT, {
-              success: true,
-              message: `Досягнення ${achievement.title} отримано`,
-              description: achievement.description
-            });
-          });
       }
     }
   );

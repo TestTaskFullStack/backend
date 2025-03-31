@@ -40,22 +40,17 @@ app.use("/api/user", userRoutes);
 
 
 
-
-
-
-
 const PORT = process.env.PORT || 8080;
-
 db.mongoose
-  .connect(`mongodb://${db.config.HOST}:${db.config.PORT}/${db.config.DB}`)
+  .connect(`mongodb://${db.config.USER}:${db.config.PASSWORD}@${db.config.HOST}:${db.config.PORT}/${db.config.DB}?authSource=admin`)
   .then(() => {
     console.log("Successfully connected to MongoDB.");
     initial();
-    
+
     console.log("Initializing Socket.io server...");
     initializeSocket(server);
     console.log("Socket.io server initialized");
-    
+
     server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}.`);
       console.log(`Socket.io server is running.`);
@@ -67,7 +62,7 @@ db.mongoose
     process.exit();
   });
 
- function initial() {
+function initial() {
   db.Role.estimatedDocumentCount()
     .then((count) => {
       if (count === 0) {
@@ -85,5 +80,5 @@ db.mongoose
     .catch((err) => {
       console.error("Error initializing roles:", err);
     });
-    seedData()
+  seedData()
 }

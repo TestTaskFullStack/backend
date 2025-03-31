@@ -49,7 +49,6 @@ export default function initializeSocket(server) {
     socket.on('disconnect', async (reason) => {
       console.log(`SOCKET.IO: Client disconnected. Reason: ${reason}`, socket.id);
       const sockets = await io.fetchSockets()
-      console.log(sockets.length)
       io.emit(SOCKET_EVENTS.USERS_ONLINE, {
         count: sockets.length
       });

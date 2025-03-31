@@ -9,6 +9,7 @@ export const registerGameHandlers =  (io, socket) => {
 
   const handleGameCreate = socketCatchAsync(socket, SOCKET_EVENTS.GAME_CREATED)(
     async (gameData) => {
+      
       if (socket.user.roles[0].name !== 'admin') {
         throw new Error('Unauthorized: Admin access required');
       }
